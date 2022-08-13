@@ -12,6 +12,7 @@ from .Mob import Mob
 from .Player import Player
 from .SoundController import SoundController
 from .TiledMap import TiledMap
+from .Bullet import Bullet
 
 ASSET_PATH = path.join(path.dirname(__file__), "../asset")
 WIDTH = 800
@@ -23,13 +24,15 @@ HEIGHT = 600
 class MyGame(PaiaGame):
     # def 方法名稱(參數: 型態 = 預設值):
     # 定義遊戲的初始化
-    def __init__(self, user_num=1, frame_limit: int = 300, target_score: int = 3000, is_sound: str = "off", map_no: int = None, *args, **kwargs):
+    def __init__(self, user_num=1, frame_limit: int = 300, target_score: int = 3000, is_sound: str = "off",
+                 map_no: int = None, *args, **kwargs):
         # super().要繼承的父類別方法的名字(初始化父類別的參數)
         super().__init__(user_num=user_num, *args, **kwargs)
         # 初始化場景(寬, 高, 背景顏色, x軸起始點, y軸起始點)
         self.scene = Scene(width=WIDTH, height=HEIGHT, color="#ffffff", bias_x=0, bias_y=0)
         # 宣告存放多個同類別物件的集合
         self.mobs = pygame.sprite.Group()
+        self.bullets = pygame.sprite.Group()
         # 宣告變數儲存遊戲中需紀錄的資訊
         self.used_frame = 0
         self.frame_to_end = frame_limit
@@ -43,7 +46,8 @@ class MyGame(PaiaGame):
         if self.is_sound == "on":
             self.sound_controller = SoundController(is_sound=True)
         # 建立遊戲物件，並加入該物件的集合
-        self.player = Player(pos=(WIDTH // 2, HEIGHT - 80), size=(50, 50), play_area_rect=pygame.Rect(0, 0, WIDTH, HEIGHT))
+        self.player = Player(pos=(WIDTH // 2, HEIGHT - 80), size=(50, 50),
+                             play_area_rect=pygame.Rect(0, 0, WIDTH, HEIGHT))
         self._create_mobs(8)
         # 撥放音樂
         self.sound_controller.play_music(
@@ -52,6 +56,7 @@ class MyGame(PaiaGame):
 
     # 在這裡將遊戲內所有的物件進行或檢查是否更新（commands={"1P": list}）或檢查程式流程的檢查
     def update(self, commands: dict):
+        print(self.bullets)
         # 更新已使用的frame
         self.used_frame += 1
         # 更新遊戲的分數
@@ -66,6 +71,10 @@ class MyGame(PaiaGame):
         # 更新物件內部資訊
         self.player.update(action)
         self.mobs.update()
+        self.bullets.update()
+        # 敵人下子彈
+        for mob in self.mobs:
+            self._create_bullets(is_player=False, init_pos=mob.rect.center)
         # 處理碰撞
         # 玩家和敵人
         hits = pygame.sprite.spritecollide(self.player, self.mobs, True, pygame.sprite.collide_rect_ratio(0.8))
@@ -137,10 +146,11 @@ class MyGame(PaiaGame):
         bg_path = path.join(ASSET_PATH, "image/background.png")
         background = create_asset_init_data(
             image_id="background"
-            , width=WIDTH-50
-            , height=HEIGHT-50
+            , width=WIDTH - 50
+            , height=HEIGHT - 50
             , file_path=bg_path
-            , github_raw_url="https://raw.githubusercontent.com/Jesse-Jumbo/GameFramework/main/MyGame/asset/image/background.png")
+            ,
+            github_raw_url="https://raw.githubusercontent.com/Jesse-Jumbo/GameFramework/main/MyGame/asset/image/background.png")
         # 定義遊戲圖片初始資料，將場景的屬性，轉化為字典
         # 將所有圖片資訊加入assets裡
         scene_init_data = {"scene": self.scene.__dict__,
@@ -160,23 +170,25 @@ class MyGame(PaiaGame):
         Get the position of MyGame objects for drawing on the web
         """
         game_obj_list = []
+        for bullet in self.bullets:
+            game_obj_list.append(bullet.game_object_data)
         for mob in self.mobs:
             if isinstance(mob, Mob):
                 game_obj_list.append(mob.game_object_data)
         game_obj_list.append(self.player.game_object_data)
-        backgrounds = [create_image_view_data(image_id="background", x=25, y=50, width=WIDTH-50, height=HEIGHT-50)]
+        backgrounds = [create_image_view_data(image_id="background", x=25, y=50, width=WIDTH - 50, height=HEIGHT - 50)]
         foregrounds = [
             create_text_view_data(
                 content=f"Score: {str(self.score)}", x=WIDTH // 2 - 50, y=5, color="#21A1F1", font_style="24px Arial")
             , create_text_view_data(
                 content=f"Lives: {str(self.player.lives)}", x=5, y=5, color="#22390A", font_style="24px Arial")
             , create_text_view_data(
-                content=f"Shield: {self.player.shield}", x=5, y=HEIGHT-30, color="#ff0000", font_style="24px Arial")
+                content=f"Shield: {self.player.shield}", x=5, y=HEIGHT - 30, color="#ff0000", font_style="24px Arial")
         ]
         _x = 110
         for i in range(self.player.shield // 10):
             foregrounds.append(create_rect_view_data(
-                name="Shield", x=_x, y=HEIGHT-25, width= 5, height= 20, color="#ff0000", angle=0))
+                name="Shield", x=_x, y=HEIGHT - 25, width=5, height=20, color="#ff0000", angle=0))
             _x += 7
         toggle_objs = [create_text_view_data(
             f"Timer: {str(self.frame_to_end - self.used_frame)} s", WIDTH - 150, 5, "#FFA500", "24px Arial BOLD")]
@@ -231,5 +243,9 @@ class MyGame(PaiaGame):
         # 根據傳入的參數，決定建立幾個mob（莫認為1）
         for i in range(count):
             # 建立mob物件，並加入到mob的集合裡
-            mob = Mob(pygame.Rect(0, -100, WIDTH, HEIGHT+100))
+            mob = Mob(pygame.Rect(0, -100, WIDTH, HEIGHT + 100))
             self.mobs.add(mob)
+
+    def _create_bullets(self, is_player: bool, init_pos: tuple):
+        bullet = Bullet(is_player=is_player, init_pos=init_pos)
+        self.bullets.add(bullet)
