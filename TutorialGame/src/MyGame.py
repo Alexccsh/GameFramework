@@ -80,6 +80,8 @@ class MyGame(PaiaGame):
         if self.player.is_shoot:
             self._create_bullets(is_player=True,init_pos=self.player.center)
             self.player.stop_shoot()
+            self._create_mobs()
+
         # 處理碰撞
         # 玩家和敵人
         hits = pygame.sprite.spritecollide(sprite=self.player
@@ -93,8 +95,25 @@ class MyGame(PaiaGame):
                                            , group=self.bullets
                                            , dokill=False
                                            , collided=pygame.sprite.collide_rect_ratio(0.8))
-        if shots and isinstance(shots[0], Bullet):
-            self.player.collide_with_bullets()
+        #如果玩家有碰到敵人子彈，執行玩家碰到子彈的行為
+        for bullet in shots:
+            if isinstance(bullet, Bullet) and not bullet.is_player():
+                bullet.kill()
+                self.player.collide_with_bullets()
+        #檢查敵人漢子但是否有碰撞
+        hits = pygame.sprite.groupcollide(self.mobs
+                                          ,self.bullets
+                                          ,False
+                                          ,False
+                                          ,pygame.sprite.collide_rect_ratio(0.8)
+                                          )
+        print(hits)
+        #如果敵人有碰到玩家子彈，執行敵人碰到子彈的行為
+        for mob, bullets in hits.items():
+            if isinstance (mob, Mob) and bullets[0].is_player():
+                mob.collide_with_bullets()
+                bullets[0].kill()
+                self.player.add_score(score=100-mob.size)
 
         # 判定是否重置遊戲
         if not self.is_running:

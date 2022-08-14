@@ -24,7 +24,8 @@ class Bullet(pygame.sprite.Sprite):
         #當子彈的上方超出畫面的下方，從集合刪除子彈物件
         if self.rect.top>self._play_area_rect.bottom or self.rect.bottom<self._play_area_rect.top:
             self.kill()
-
+    def is_player(self):
+        return self._is_player
 
 
 
