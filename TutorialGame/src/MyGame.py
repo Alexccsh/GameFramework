@@ -72,14 +72,29 @@ class MyGame(PaiaGame):
         self.player.update(action)
         self.mobs.update()
         self.bullets.update()
+        if self.used_frame%30 == 0:
+
         # 敵人下子彈
-        for mob in self.mobs:
-            self._create_bullets(is_player=False, init_pos=mob.rect.center)
+            for mob in self.mobs:
+                self._create_bullets(is_player=False, init_pos=mob.rect.center)
+        if self.player.is_shoot:
+            self._create_bullets(is_player=True,init_pos=self.player.center)
+            self.player.stop_shoot()
         # 處理碰撞
         # 玩家和敵人
-        hits = pygame.sprite.spritecollide(self.player, self.mobs, True, pygame.sprite.collide_rect_ratio(0.8))
+        hits = pygame.sprite.spritecollide(sprite=self.player
+                                           , group=self.mobs
+                                           , dokill=True
+                                           ,collided=pygame.sprite.collide_rect_ratio(0.8))
         if hits:
             self.player.collide_with_mobs()
+        #玩家和子彈
+        shots= pygame.sprite.spritecollide(sprite=self.player
+                                           , group=self.bullets
+                                           , dokill=False
+                                           , collided=pygame.sprite.collide_rect_ratio(0.8))
+        if shots and isinstance(shots[0], Bullet):
+            self.player.collide_with_bullets()
 
         # 判定是否重置遊戲
         if not self.is_running:
@@ -247,5 +262,7 @@ class MyGame(PaiaGame):
             self.mobs.add(mob)
 
     def _create_bullets(self, is_player: bool, init_pos: tuple):
-        bullet = Bullet(is_player=is_player, init_pos=init_pos)
+        bullet = Bullet(is_player=is_player, init_pos=init_pos, play_area_rect=pygame.Rect(0, 0, WIDTH, HEIGHT))
         self.bullets.add(bullet)
+
+

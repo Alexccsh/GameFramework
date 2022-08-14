@@ -59,7 +59,7 @@ class Player(pygame.sprite.Sprite):
             self._last_shoot_frame = self._used_frame
             self._is_shoot = True
 
-    def shoot_stop(self):
+    def stop_shoot(self):
         self._is_shoot = False
 
     @property
@@ -98,6 +98,8 @@ class Player(pygame.sprite.Sprite):
 
     def collide_with_bullets(self):
         self._shield -= 10
+
+
 
     def add_score(self, score: int):
         self._score += score
